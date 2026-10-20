@@ -1,0 +1,1042 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#A8236B"><title>Tulip Attendance</title><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<style>
+/* Layout: one shared page. Phone = monitor roll call (tap a name). Laptop = teacher register (SF2-style month grid). */
+:root{
+  --bg:#F8F2F7; --surface:#FFFFFF; --surface2:#F3E9F1; --ink:#2A1722; --muted:#7B6672; --line:#E7D7E1;
+  --accent:#A8236B; --on-accent:#FFFFFF; --leaf:#2F8A57;
+  --A:#D9482B; --E:#2E6BD6; --C:#B87C00; --L:#12857F; --P:#2F8A57;
+  --t1:#C2307A; --t2:#E2543F; --t3:#F2B01E; --t4:#8E3FA0; --t5:#F27AA9;
+  --wk:#F1E6EE; --shadow:0 10px 30px rgba(60,20,45,.18);
+  --f-display:'Trebuchet MS','Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+  --f-body:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --gutter:16px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1C1219; --surface:#271A23; --surface2:#322230; --ink:#F7E8F0; --muted:#BBA2B0; --line:#40303B;
+    --accent:#F06AB0; --on-accent:#2A0F1D; --leaf:#5FCB8C;
+    --A:#FF7A5C; --E:#6EA4FF; --C:#F0B73A; --L:#4CCFC6; --P:#5FCB8C;
+    --t1:#F06AB0; --t2:#FF7A5C; --t3:#F7C948; --t4:#B77BE0; --t5:#FF9FC4;
+    --wk:#2D1F29; --shadow:0 10px 30px rgba(0,0,0,.5); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1C1219; --surface:#271A23; --surface2:#322230; --ink:#F7E8F0; --muted:#BBA2B0; --line:#40303B;
+  --accent:#F06AB0; --on-accent:#2A0F1D; --leaf:#5FCB8C;
+  --A:#FF7A5C; --E:#6EA4FF; --C:#F0B73A; --L:#4CCFC6; --P:#5FCB8C;
+  --t1:#F06AB0; --t2:#FF7A5C; --t3:#F7C948; --t4:#B77BE0; --t5:#FF9FC4;
+  --wk:#2D1F29; --shadow:0 10px 30px rgba(0,0,0,.5); color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-block:12px 28px;padding-left:max(var(--gutter),env(safe-area-inset-left,0px));padding-right:max(var(--gutter),env(safe-area-inset-right,0px))}
+.wrap{max-width:1320px;margin-inline:auto;display:flex;flex-direction:column;gap:14px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+svg.tp-svg{display:block}
+
+/* tulip symbol parts */
+.ts{fill:none;stroke:var(--leaf);stroke-width:2;stroke-linecap:round}
+.tl{fill:var(--leaf)}
+.tp{fill:currentColor;opacity:.78}
+.tc{fill:currentColor;stroke:#fff;stroke-opacity:.55;stroke-width:.8}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand .logo{width:34px;height:46px;color:var(--accent);flex:none}
+.brand h1{font-size:24px;line-height:1.05}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.modes{display:inline-flex;background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.modes button{border:0;background:transparent;padding:8px 14px;border-radius:999px;font-weight:600;font-size:14px;min-height:40px}
+.modes button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.garden{display:flex;justify-content:space-between;align-items:flex-end;height:46px;overflow:hidden;border-bottom:2px solid var(--leaf);gap:4px;margin-top:-2px}
+.garden svg{flex:none}
+
+/* banners */
+.note{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 14px;font-size:14px;display:flex;gap:10px;align-items:flex-start}
+.note.warn{border-color:var(--C);background:color-mix(in srgb,var(--C) 12%,var(--surface))}
+.note.info{border-color:var(--E);background:color-mix(in srgb,var(--E) 10%,var(--surface))}
+.note b{font-weight:700}
+
+/* date bar */
+.datebar{display:flex;flex-direction:column;gap:10px}
+.dnav{display:flex;align-items:center;gap:10px}
+.dtitle{flex:1;text-align:center;min-width:0}
+.dtitle strong{font-family:var(--f-display);font-size:22px;display:block;line-height:1.15}
+.dtitle span{color:var(--muted);font-size:13px}
+.ib{width:48px;height:48px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);display:grid;place-items:center;flex:none}
+.ib svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.mrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+select,input[type=text]{font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;min-height:42px;max-width:100%}
+.link{background:none;border:0;color:var(--accent);font-weight:600;padding:8px 4px;min-height:40px}
+.strip{position:relative;display:flex;gap:6px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x proximity}
+.dchip{flex:none;width:46px;padding:6px 0 7px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);display:flex;flex-direction:column;align-items:center;gap:1px;scroll-snap-align:center;position:relative}
+.dchip small{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em}
+.dchip b{font-family:var(--f-display);font-size:17px;font-variant-numeric:tabular-nums}
+.dchip.wk{background:var(--wk)}
+.dchip.today{border-color:var(--accent)}
+.dchip[aria-current="date"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.dchip[aria-current="date"] small{color:inherit;opacity:.85}
+.dchip i{width:6px;height:6px;border-radius:50%;background:var(--leaf);position:absolute;bottom:3px}
+.dchip.nc i{background:var(--muted)}
+.dchip[aria-current="date"] i{background:var(--on-accent)}
+
+/* summary pills */
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600}
+.pill b{font-variant-numeric:tabular-nums;font-size:15px}
+.pill::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--pc,var(--P))}
+
+/* tiles */
+.group h2{font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;gap:8px;align-items:baseline}
+.group h2 span{font-family:var(--f-body);font-weight:600;font-size:13px;letter-spacing:0;text-transform:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:8px}
+.tile{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;align-items:center;min-height:66px;padding:9px 12px;
+  border:1.5px solid var(--line);border-radius:14px;background:var(--surface);text-align:left;--sc:var(--P)}
+.tile .ic{width:24px;height:33px;color:var(--accent);transition:transform .2s}
+.tile .nm{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.tile .nm b{font-weight:700;overflow-wrap:anywhere}
+.tile .nm span{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.tile .state{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:12.5px}
+.tile .chip{background:var(--sc);color:#fff;border-radius:999px;padding:2px 9px;font-weight:700;font-size:12px}
+:root[data-theme="dark"] .tile .chip{color:#1b0f17}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tile .chip{color:#1b0f17}}
+.tile .why{color:var(--ink);overflow-wrap:anywhere}
+.tile:not([data-st="P"]){border-color:var(--sc);background:color-mix(in srgb,var(--sc) 11%,var(--surface))}
+.tile:not([data-st="P"]) .ic{color:var(--sc);transform:rotate(-26deg) translateY(2px)}
+.tile[data-st="A"]{--sc:var(--A)} .tile[data-st="E"]{--sc:var(--E)} .tile[data-st="C"]{--sc:var(--C)} .tile[data-st="L"]{--sc:var(--L)}
+.tile:disabled{opacity:.5;cursor:not-allowed}
+.tile:active{transform:scale(.985)}
+
+/* save bar */
+.savebar{position:sticky;bottom:0;background:var(--bg);padding:10px 0 calc(8px + env(safe-area-inset-bottom,0px));border-top:1.5px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap;z-index:5}
+.btn{border:0;border-radius:14px;padding:12px 18px;font-weight:700;background:var(--accent);color:var(--on-accent);min-height:48px}
+.btn.sec{background:var(--surface);color:var(--ink);border:1.5px solid var(--line)}
+.btn.ghost{background:transparent;color:var(--accent);padding-inline:10px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.savebar .grow{flex:1;min-width:200px}
+.saved{display:flex;align-items:center;gap:8px;color:var(--P);font-weight:700}
+.saved svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+
+/* teacher */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:10px 14px}
+.stat small{display:block;color:var(--muted);font-size:12.5px;font-weight:600}
+.stat b{display:block;font-family:var(--f-display);font-size:26px;font-variant-numeric:tabular-nums;line-height:1.15}
+.stat span{display:block;font-size:12.5px;color:var(--muted)}
+.attn{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.attn .tag{background:color-mix(in srgb,var(--A) 13%,var(--surface));border:1.5px solid var(--A);border-radius:999px;padding:3px 11px;font-size:13px;font-weight:600}
+.attn .tag.watch{border-color:var(--C);background:color-mix(in srgb,var(--C) 12%,var(--surface))}
+.sec-h{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.sec-h h2{font-size:19px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.reg-wrap{overflow:auto;border:1.5px solid var(--line);border-radius:14px;background:var(--surface);max-height:78vh}
+table.reg{border-collapse:separate;border-spacing:0;font-size:13px;min-width:100%}
+.reg th,.reg td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:0;text-align:center;background:var(--surface)}
+.reg thead th{position:sticky;top:0;z-index:3;background:var(--surface2)}
+.reg .c-no,.reg .c-name{position:sticky;z-index:2;text-align:left}
+.reg .c-no{left:0;width:38px;min-width:38px;padding:0 6px;color:var(--muted);font-variant-numeric:tabular-nums}
+.reg .c-name{left:38px;min-width:210px;padding:0 10px;white-space:nowrap;box-shadow:2px 0 0 var(--line)}
+.reg thead .c-no,.reg thead .c-name{z-index:4}
+.reg td.wk,.reg th.wk{background:var(--wk)}
+.reg td.off{background:repeating-linear-gradient(135deg,transparent 0 4px,color-mix(in srgb,var(--muted) 14%,transparent) 4px 5px)}
+.dhb{width:32px;display:flex;flex-direction:column;align-items:center;padding:4px 0;border:0;background:none;line-height:1.1;margin:auto}
+.dhb span{font-size:10.5px;color:var(--muted);font-weight:700}
+.dhb b{font-variant-numeric:tabular-nums}
+.cell{width:32px;height:32px;display:grid;place-items:center;border:0;background:none;margin:auto;border-radius:6px}
+.cell:hover{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.g{font-style:normal;font-weight:800;font-size:14px;line-height:1}
+.gA{color:var(--A)} .gE{color:var(--E)}
+.gP{width:4px;height:4px;border-radius:50%;background:var(--line);display:block}
+.gC,.gL{width:15px;height:15px;border:1.5px solid var(--ink);display:block;border-radius:2px}
+.gC{background:linear-gradient(to bottom,transparent 50%,var(--C) 50%)}
+.gL{background:linear-gradient(to bottom,var(--L) 50%,transparent 50%)}
+.legend .g{display:inline-block}
+.reg .tot{min-width:50px;font-variant-numeric:tabular-nums;font-weight:700;padding:0 6px}
+.reg thead .tot{font-size:12px}
+.reg tr.sum td,.reg tr.sum th{background:var(--surface2);font-weight:700;font-variant-numeric:tabular-nums}
+.reg tr.sum .c-name,.reg tr.sum .c-no{background:var(--surface2)}
+.reg tr.grp th{background:var(--surface2);text-align:left;padding:5px 10px;position:sticky;left:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.reg tbody tr:not(.sum):not(.grp) td:not(.c-no):not(.c-name):not(.tot){height:34px}
+.reg .nm{display:block;padding:7px 0}
+.reasons{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:6px 24px}
+.rrow{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;font-size:14px;padding:5px 0;border-bottom:1px solid var(--line)}
+.rrow code{font-family:var(--f-body);font-size:12px;font-weight:700;color:var(--muted)}
+.rrow em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}
+.regsec{display:flex;flex-direction:column;gap:10px}
+.empty{border:2px dashed var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--muted)}
+.empty svg{width:34px;height:46px;color:var(--accent);margin:0 auto 6px;display:block}
+.foot{color:var(--muted);font-size:12.5px;margin-top:6px}
+
+/* sheet */
+#sheetRoot[hidden]{display:none}
+.scrim{position:fixed;inset:0;background:rgba(20,6,14,.55);z-index:20}
+.sheet{position:fixed;z-index:21;left:0;right:0;bottom:0;max-height:92%;overflow-y:auto;background:var(--surface);color:var(--ink);
+  border-radius:22px 22px 0 0;box-shadow:var(--shadow);padding:10px max(18px,env(safe-area-inset-left,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));
+  display:flex;flex-direction:column;gap:14px;max-width:560px;margin-inline:auto}
+.grab{width:42px;height:5px;border-radius:3px;background:var(--line);margin:0 auto}
+.sh-head{display:flex;gap:12px;align-items:center}
+.sh-head .ic{width:28px;height:38px;color:var(--accent);flex:none}
+.sh-head h2{font-size:20px;line-height:1.15;overflow-wrap:anywhere}
+.sh-head p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.sh-head .x{margin-left:auto;width:42px;height:42px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);flex:none;display:grid;place-items:center}
+.sh-head .x svg{width:18px;height:18px;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.lbl{font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;display:block}
+.seg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;border:0;padding:0;margin:0}
+.seg button{border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 8px;font-weight:700;min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px;--sc:var(--A)}
+.seg button[data-st="E"]{--sc:var(--E)} .seg button[data-st="C"]{--sc:var(--C)} .seg button[data-st="L"]{--sc:var(--L)}
+.seg button::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--sc)}
+.seg button[aria-pressed="true"]{border-color:var(--sc);background:color-mix(in srgb,var(--sc) 16%,var(--surface))}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.rc{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;min-height:42px}
+.rc[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.sh-actions{display:flex;gap:10px;flex-wrap:wrap}
+.sh-actions .btn{flex:1;min-width:130px}
+.tgl{display:flex;gap:12px;align-items:center;font-weight:600;min-height:44px}
+.tgl input{width:22px;height:22px;accent-color:var(--accent)}
+@media (min-width:640px){
+  .sheet{top:50%;bottom:auto;transform:translateY(-50%);border-radius:22px;left:0;right:0;max-height:90%}
+  .seg{grid-template-columns:repeat(4,1fr)}
+}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;z-index:40;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
+#toast[hidden]{display:none}
+
+/* mode switching: monitor shows tiles, teacher shows register */
+@media (max-width:420px){ .brand h1{font-size:21px} .modes button{padding:8px 11px} }
+.backup{border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.backup h2{font-size:17px}
+.backup .foot{margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="tulip" viewBox="0 0 32 44">
+      <path class="ts" d="M16 22 V43"/>
+      <path class="tl" d="M16 41 C8 40 5 33 5 27 C11 29 15 33 16 41 Z"/>
+      <path class="tl" d="M16 38 C24 37 27 31 27 25 C21 27 17 31 16 38 Z"/>
+      <path class="tp" d="M6 6 C4 15 8 24 16 24 C11 20 10 12 14 8 C11 9 8 8 6 6 Z"/>
+      <path class="tp" d="M26 6 C28 15 24 24 16 24 C21 20 22 12 18 8 C21 9 24 8 26 6 Z"/>
+      <path class="tc" d="M16 3 C10 9 10 18 16 24 C22 18 22 9 16 3 Z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 44" aria-hidden="true"><use href="#tulip"/></svg>
+      <div>
+        <h1>Tulip Attendance</h1>
+        <p>Grade 11 · Marao National High School · <span style="white-space:nowrap">SY 2026–2027</span></p>
+      </div>
+    </div>
+    <div class="modes" role="group" aria-label="View">
+      <button type="button" data-act="mode" data-mode="monitor" aria-pressed="true">Class monitor</button>
+      <button type="button" data-act="mode" data-mode="teacher" aria-pressed="false">Teacher</button>
+    </div>
+  </header>
+  <div class="garden" id="garden" aria-hidden="true"></div>
+  <main id="app" aria-live="polite"></main>
+  <p class="foot">Names from SF 2 class record, Section Tulip · Adviser: Arnold M. Consular · Works offline; records are saved on this device.</p>
+</div>
+
+<div id="sheetRoot" hidden></div>
+<div id="toast" role="status" hidden></div>
+<input type="file" id="restoreFile" accept=".json,application/json" hidden>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- roster (from the SF 2 INPUT DATA sheet) ---------- */
+var RAW=[
+ ['m01','Abastillas','Wilmar','Pollo','M'],['m02','Cabero','Julz Juzstniel','','M'],['m03','Corpez','Arjay','Danieles','M'],
+ ['m04','Dotollo','Mark Jason','Madrazo','M'],['m05','Espijo','Jorose','','M'],['m06','Llanos','John Paul','Lawag','M'],
+ ['m07','Molato','Sanderson','Floro','M'],['m08','Murillo','William','Basinillo','M'],['m09','Perandos','Sammy Jr.','Porazo','M'],
+ ['m10','Pigte','April Rabago','','M'],['m11','Sacro','Romeo Jr.','','M'],['m12','Vero','Jairus Khen','Dedal','M'],
+ ['f01','Abenoja','Avegail','Saligumba','F'],['f02','Albesa','Princess Ann','Rabago','F'],['f03','Alias','Joanna Grace','','F'],
+ ['f04','Ardillo','Lea Mae','Kuezon','F'],['f05','Asunto','Abegel Stephanie','Oracion','F'],['f06','Bisnar','Greshan Mirth','Morata','F'],
+ ['f07','Costamero','Angela','Acidillo','F'],['f08','Dedal','Lyka Amor','Polistico','F'],['f09','Luego','Kristy Leigh','Piamonte','F'],
+ ['f10','Pollo','Marie France','Jomoc','F'],['f11','Peras','Daphney','Bisnar','F'],['f12','Rosales','Cristine','Consular','F'],
+ ['f13','Villacorte','Marianne','Casia','F']
+];
+var ROSTER=RAW.map(function(r){return {id:r[0],last:r[1],first:r[2],mid:r[3],sex:r[4],
+  full:r[1]+', '+r[2]+(r[3]?', '+r[3]:''), short:r[2]+(r[3]?' '+r[3].charAt(0)+'.':'')};});
+var BY_ID={}; ROSTER.forEach(function(s){BY_ID[s.id]=s;});
+var MALES=ROSTER.filter(function(s){return s.sex==='M';}), FEMALES=ROSTER.filter(function(s){return s.sex==='F';});
+
+/* ---------- statuses and reasons (SF2 codes) ---------- */
+var ST={P:'Present',A:'Absent',E:'Excused',C:'Cutting classes',L:'Late comer'};
+var REASONS=[
+ {id:'sick',label:'Sick',sf2:'b.1'},
+ {id:'appt',label:'Medical / dental appointment',sf2:'b.1'},
+ {id:'family',label:'Family problem',sf2:'a.4'},
+ {id:'death',label:'Death in the family',sf2:'a.4'},
+ {id:'siblings',label:'Took care of siblings',sf2:'a.1'},
+ {id:'far',label:'Far from school / no ride',sf2:'d.1'},
+ {id:'weather',label:'Bad weather / calamity',sf2:'d.3'},
+ {id:'work',label:'Working / helping family income',sf2:'e.1'},
+ {id:'school',label:'School activity / official business',sf2:''},
+ {id:'hunger',label:'Hungry / no food at home',sf2:'b.7'},
+ {id:'interest',label:'Lack of interest / distractions',sf2:'b.6'},
+ {id:'peer',label:'Peer influence',sf2:'c.3'},
+ {id:'conflict',label:'Armed conflict',sf2:'d.2'},
+ {id:'marriage',label:'Early marriage / pregnancy',sf2:'a.2',t:1},
+ {id:'parents',label:"Parents' attitude toward schooling",sf2:'a.3',t:1},
+ {id:'overage',label:'Overage',sf2:'b.2',t:1},
+ {id:'drugs',label:'Drug abuse',sf2:'b.4',t:1},
+ {id:'poor',label:'Poor academic performance',sf2:'b.5',t:1},
+ {id:'teacher',label:'Teacher factor',sf2:'c.1',t:1},
+ {id:'room',label:'Physical condition of classroom',sf2:'c.2',t:1},
+ {id:'other',label:'Others (type it in the note)',sf2:'f'}
+];
+var R_BY={}; REASONS.forEach(function(r){R_BY[r.id]=r;});
+var PRIMARY={
+ A:['sick','family','siblings','far','weather','work','hunger','other'],
+ E:['sick','appt','family','death','school','weather','far','other'],
+ C:['peer','interest','hunger','family','other'],
+ L:['far','weather','siblings','work','sick','family','other']
+};
+
+/* ---------- dates ---------- */
+var START='2026-01-01', END='2027-12-31';
+var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+var DAYN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var D3=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var SF=['S','M','T','W','TH','F','S'];
+function pad(n){return (n<10?'0':'')+n;}
+function ymd(y,m,d){return y+'-'+pad(m)+'-'+pad(d);}
+function parse(s){var a=s.split('-');return {y:+a[0],m:+a[1],d:+a[2]};}
+function dow(s){var p=parse(s);return new Date(p.y,p.m-1,p.d).getDay();}
+function dim(y,m){return new Date(y,m,0).getDate();}
+function addDays(s,n){var p=parse(s);var d=new Date(p.y,p.m-1,p.d+n);return ymd(d.getFullYear(),d.getMonth()+1,d.getDate());}
+function clamp(s){return s<START?START:(s>END?END:s);}
+function todayStr(){var d=new Date();return clamp(ymd(d.getFullYear(),d.getMonth()+1,d.getDate()));}
+function isWeekend(s){var w=dow(s);return w===0||w===6;}
+function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function longDate(s){var p=parse(s);return DAYN[dow(s)]+', '+MONTHS[p.m-1]+' '+p.d+', '+p.y;}
+function shortDate(s){var p=parse(s);return D3[dow(s)]+', '+MONTHS[p.m-1].slice(0,3)+' '+p.d;}
+
+/* ---------- state ---------- */
+var S={mode:'monitor',date:todayStr(),days:{},loading:true,offline:false,canWrite:true,canDownload:true,sheet:null};
+var db=null;
+/* ---------- storage: this device only, no sign-in, no internet ---------- */
+var STORE_KEY='tulip-attendance-v1', BACKUP_KEY='tulip-last-backup';
+function loadStore(){
+  try{
+    localStorage.setItem('tulip-test','1'); localStorage.removeItem('tulip-test');
+    var t=localStorage.getItem(STORE_KEY); if(!t) return {};
+    var o=JSON.parse(t); return (o&&o.days&&typeof o.days==='object')?o.days:{};
+  }catch(e){S.offline=true;return {};}
+}
+function persist(){
+  if(db) return true;
+  try{localStorage.setItem(STORE_KEY,JSON.stringify({v:1,saved:Date.now(),days:S.days}));return true;}
+  catch(e){S.offline=true;toast('This device would not keep the attendance. Download a backup now.');return false;}
+}
+var dl={save:function(o){return new Promise(function(res,rej){
+  try{
+    var type=/\.csv$/.test(o.filename)?'text/csv;charset=utf-8':(/\.json$/.test(o.filename)?'application/json':'text/html;charset=utf-8');
+    var url=URL.createObjectURL(new Blob([o.data],{type:type}));
+    var a=document.createElement('a'); a.href=url; a.download=o.filename; a.style.display='none'; document.body.appendChild(a); a.click();
+    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},2000); res();
+  }catch(e){rej(e);}
+});}};
+try{var saved=localStorage.getItem('tulip-mode'); if(saved==='teacher'||saved==='monitor'){S.mode=saved;} else {S.mode=window.innerWidth>=820?'teacher':'monitor';}}catch(e){S.mode=window.innerWidth>=820?'teacher':'monitor';}
+
+var $app=document.getElementById('app'), $sheet=document.getElementById('sheetRoot'), $toast=document.getElementById('toast');
+
+/* ---------- data helpers ---------- */
+function dayDoc(date){return S.days[date]||null;}
+function markOf(date,sid){var d=S.days[date];return d&&d.marks&&d.marks[sid]?d.marks[sid]:null;}
+function stOf(date,sid){var m=markOf(date,sid);return m&&m.st?m.st:'P';}
+function isAbs(st){return st==='A'||st==='E';}
+function isRecorded(date){
+  var d=S.days[date]; if(!d||d.noClass) return false;
+  if(d.taken) return true;
+  var mk=d.marks||{}; for(var k in mk){ if(BY_ID[k]&&mk[k].st&&mk[k].st!=='P') return true; }
+  return false;
+}
+function dayCounts(date){
+  var c={A:0,E:0,C:0,L:0}, d=S.days[date]; if(!d||!d.marks) return c;
+  for(var k in d.marks){ if(BY_ID[k]&&c[d.marks[k].st]!==undefined) c[d.marks[k].st]++; }
+  return c;
+}
+function reasonText(m){
+  if(!m||m.st==='P') return '';
+  var r=R_BY[m.reason], note=(m.note||'').trim();
+  if(r&&r.id==='other') return note||r.label.replace(/ \(.*\)/,'');
+  if(r) return r.label+(note?' · '+note:'');
+  return note;
+}
+
+/* ---------- writes ---------- */
+var queues={};
+function writeDay(date,patch){
+  if(!S.canWrite){toast('This link is view-only. Ask the teacher for edit access.');return Promise.resolve();}
+  applyLocal(date,patch); if(!db){ persist(); render(); return Promise.resolve(); } render();
+  var run=function(){
+    var ref=db.collection('days').doc(date);
+    return ref.get().then(function(snap){
+      if(snap.exists) return ref.update(patch);
+      var base={date:date,taken:false,noClass:false,noClassLabel:'',marks:{}};
+      var doc=Object.assign(base,patch); doc.marks=Object.assign({},patch.marks||{});
+      return ref.set(doc);
+    });
+  };
+  queues[date]=(queues[date]||Promise.resolve()).then(run).catch(function(err){
+    console.error(err); toast('Could not save. Check the connection and try again.');
+  });
+  return queues[date];
+}
+function pushDay(date,doc){
+  if(!db||!S.canWrite) return;
+  queues[date]=(queues[date]||Promise.resolve()).then(function(){return db.collection('days').doc(date).set(doc);}).catch(function(err){console.error(err);toast('Could not save one restored day.');});
+}
+var pendingRender=false;
+function softRender(){var a=document.activeElement; if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.isContentEditable)){pendingRender=true;return;} render();}
+document.addEventListener('focusout',function(){if(pendingRender){pendingRender=false;setTimeout(softRender,0);}});
+function applyLocal(date,patch){
+  var cur=S.days[date]||{date:date,taken:false,noClass:false,noClassLabel:'',marks:{}};
+  var next=Object.assign({},cur,patch);
+  next.marks=Object.assign({},cur.marks||{});
+  if(patch.marks){for(var k in patch.marks){next.marks[k]=patch.marks[k];}}
+  S.days=Object.assign({},S.days); S.days[date]=next;
+}
+
+/* ---------- stats ---------- */
+function monthDates(y,m){var a=[],n=dim(y,m);for(var d=1;d<=n;d++)a.push(ymd(y,m,d));return a;}
+function monthStats(y,m){
+  var dates=monthDates(y,m), rec=dates.filter(isRecorded);
+  var per={}; ROSTER.forEach(function(s){per[s.id]={abs:0,tardy:0,run:0,maxRun:0};});
+  var perDay={}, reasonCount={}, noReason=0, totalPresent=0;
+  rec.forEach(function(date){
+    var pm=0,pf=0;
+    ROSTER.forEach(function(s){
+      var mk=markOf(date,s.id), st=mk&&mk.st?mk.st:'P', p=per[s.id];
+      if(isAbs(st)){p.abs++;p.run++;if(p.run>p.maxRun)p.maxRun=p.run;}
+      else{p.run=0;if(s.sex==='M')pm++;else pf++;if(st==='C'||st==='L')p.tardy++;}
+      if(st!=='P'){ if(mk.reason&&R_BY[mk.reason]) reasonCount[mk.reason]=(reasonCount[mk.reason]||0)+1; else noReason++; }
+    });
+    perDay[date]={M:pm,F:pf}; totalPresent+=pm+pf;
+  });
+  var n=rec.length, ada=n?totalPresent/n:null;
+  return {dates:dates,rec:rec,per:per,perDay:perDay,reasons:reasonCount,noReason:noReason,days:n,ada:ada,pct:n?ada/ROSTER.length*100:null};
+}
+
+/* ---------- html pieces ---------- */
+var CHEV_L='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+var CHEV_R='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
+var CHECK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+var XICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+function monthSelect(){
+  var cur=S.date.slice(0,7), o='';
+  for(var y=2026;y<=2027;y++)for(var m=1;m<=12;m++){var v=y+'-'+pad(m);o+='<option value="'+v+'"'+(v===cur?' selected':'')+'>'+MONTHS[m-1]+' '+y+'</option>';}
+  return '<label class="sr" for="monthSel">Month</label><select id="monthSel">'+o+'</select>';
+}
+
+function backupCard(){
+  var n=Object.keys(S.days).length, lb=0; try{lb=+localStorage.getItem(BACKUP_KEY)||0;}catch(e){}
+  var stale=n>0&&(!lb||(Date.now()-lb)>7*864e5);
+  var when=lb?new Date(lb).toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'}):'never';
+  return '<section class="backup" aria-label="Backup and share"><h2>Backup and share</h2>'+
+    '<p class="foot">'+(db?'Attendance is saved online and shared live: what the monitor marks, the teacher sees on their own device. A backup file is an extra safe copy.':'Attendance is saved on this device, in this browser. No internet or sign-in is needed. A backup file keeps a safe copy and lets you move records between the monitor\'s phone and the teacher\'s laptop (send the file by Messenger, Bluetooth, USB or email).')+'</p>'+
+    (stale?'<div class="note warn"><span><b>'+(lb?'No backup in over a week.':'No backup yet.')+'</b> Download one so the records are safe if the phone is reset or the browser data is cleared.</span></div>':'')+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" data-act="backup">Download backup</button><button type="button" class="btn sec" data-act="restore">Restore from backup file</button></div>'+
+    '<p class="foot">Last backup: '+when+'. Restoring adds the file to what is already here and never deletes; if the same learner and day are in both, the file wins.</p></section>';
+}
+
+function monitorHTML(){
+  var date=S.date, p=parse(date), n=dim(p.y,p.m), d=dayDoc(date)||{}, today=todayStr();
+  var chips='';
+  for(var i=1;i<=n;i++){
+    var ds=ymd(p.y,p.m,i), w=dow(ds), dd=dayDoc(ds);
+    var cls='dchip'+((w===0||w===6)?' wk':'')+(ds===today?' today':'')+(dd&&dd.noClass?' nc':'');
+    var dot=(isRecorded(ds)||(dd&&dd.noClass))?'<i></i>':'';
+    chips+='<button type="button" class="'+cls+'" data-act="pick" data-date="'+ds+'"'+(ds===date?' aria-current="date"':'')+' aria-label="'+esc(longDate(ds))+'"><small>'+D3[w].toUpperCase()+'</small><b>'+i+'</b>'+dot+'</button>';
+  }
+  var bar='<section class="datebar" aria-label="Date">'+
+    '<div class="dnav"><button type="button" class="ib" data-act="prevday" aria-label="Previous school day">'+CHEV_L+'</button>'+
+    '<div class="dtitle"><strong>'+DAYN[dow(date)]+', '+MONTHS[p.m-1]+' '+p.d+'</strong><span>'+p.y+(date===today?' · Today':'')+'</span></div>'+
+    '<button type="button" class="ib" data-act="nextday" aria-label="Next school day">'+CHEV_R+'</button></div>'+
+    '<div class="mrow">'+monthSelect()+'<button type="button" class="link" data-act="today">Jump to today</button></div>'+
+    '<div class="strip" id="strip">'+chips+'</div></section>';
+
+  var notes='';
+  if(S.offline) notes+='<div class="note warn"><b>This browser will not keep records.</b> Open this file in Chrome itself (not inside another app) and not in a private tab, so attendance can be saved.</div>';
+  else if(!S.canWrite) notes+='<div class="note warn"><b>View only.</b> Ask the teacher to share this page with edit access (Contributor).</div>';
+  if(d.noClass) notes+='<div class="note info"><b>No classes.</b> '+esc(d.noClassLabel||'Marked by the teacher')+'</div>';
+  else if(isWeekend(date)) notes+='<div class="note info"><b>Weekend.</b> No class unless your teacher says otherwise.</div>';
+
+  var c=dayCounts(date), present=ROSTER.length-c.A-c.E;
+  var pills='<div class="pills" aria-label="Summary for the day">'+
+    '<span class="pill" style="--pc:var(--P)">Present <b>'+present+'</b></span>'+
+    '<span class="pill" style="--pc:var(--A)">Absent <b>'+c.A+'</b></span>'+
+    '<span class="pill" style="--pc:var(--E)">Excused <b>'+c.E+'</b></span>'+
+    '<span class="pill" style="--pc:var(--C)">Cutting <b>'+c.C+'</b></span>'+
+    '<span class="pill" style="--pc:var(--L)">Late <b>'+c.L+'</b></span></div>';
+
+  var off=!!d.noClass||S.loading;
+  function grp(title,list){
+    return '<section class="group"><h2>'+title+' <span>'+list.length+'</span></h2><div class="grid">'+list.map(function(s){return tile(s,date,off);}).join('')+'</div></section>';
+  }
+  var anyMarks=(c.A+c.E+c.C+c.L)>0, absentN=c.A+c.E;
+  var saveBar;
+  if(d.taken){
+    var t=d.takenAt?new Date(d.takenAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'';
+    saveBar='<div class="savebar"><span class="saved">'+CHECK+'Attendance saved'+(t?' at '+t:'')+'</span><span class="grow"></span><button type="button" class="btn sec" data-act="untake">Undo</button></div>';
+  } else {
+    var label=anyMarks?('Save attendance · '+absentN+' absent'):'Everyone is present · Save';
+    saveBar='<div class="savebar"><button type="button" class="btn grow" data-act="take"'+(off?' disabled':'')+'>'+label+'</button></div>';
+  }
+  return bar+notes+pills+(S.loading?'<div class="empty">Loading attendance…</div>':'')+grp('Male',MALES)+grp('Female',FEMALES)+backupCard()+saveBar;
+}
+
+function tile(s,date,disabled){
+  var m=markOf(date,s.id), st=m&&m.st?m.st:'P', why=reasonText(m);
+  return '<button type="button" class="tile" data-act="open" data-sid="'+s.id+'" data-st="'+st+'"'+(disabled?' disabled':'')+'>'+
+    '<svg class="ic" viewBox="0 0 32 44" aria-hidden="true"><use href="#tulip"/></svg>'+
+    '<span class="nm"><b>'+esc(s.last)+'</b><span>'+esc(s.short)+'</span></span>'+
+    (st!=='P'?'<span class="state"><span class="chip">'+ST[st]+'</span>'+(why?'<span class="why">'+esc(why)+'</span>':'')+'</span>':'')+
+  '</button>';
+}
+
+function glyph(st,rec){
+  if(st==='A') return '<i class="g gA">x</i>';
+  if(st==='E') return '<i class="g gE">E</i>';
+  if(st==='C') return '<i class="g gC"></i>';
+  if(st==='L') return '<i class="g gL"></i>';
+  return rec?'<i class="gP"></i>':'';
+}
+
+function teacherHTML(){
+  var p=parse(S.date), y=p.y, m=p.m, ms=monthStats(y,m), dates=ms.dates, today=todayStr();
+  var head='<section class="datebar"><div class="mrow">'+
+    '<button type="button" class="ib" data-act="prevmonth" aria-label="Previous month">'+CHEV_L+'</button>'+monthSelect()+
+    '<button type="button" class="ib" data-act="nextmonth" aria-label="Next month">'+CHEV_R+'</button>'+
+    '<button type="button" class="link" data-act="today">This month</button></div></section>';
+
+  var notes='';
+  if(S.offline) notes='<div class="note warn"><b>This browser will not keep records.</b> Open this file in Chrome, Edge or Firefox (not in a private window) so attendance can be saved.</div>';
+  else if(!S.canWrite) notes='<div class="note warn"><b>View only.</b> You need edit access to change attendance.</div>';
+
+  var nA=0,nT=0; ROSTER.forEach(function(s){nA+=ms.per[s.id].abs;nT+=ms.per[s.id].tardy;});
+  var stats='<div class="stats">'+
+    '<div class="stat"><small>Days of classes recorded</small><b>'+ms.days+'</b><span>'+MONTHS[m-1]+' '+y+'</span></div>'+
+    '<div class="stat"><small>Average daily attendance</small><b>'+(ms.ada==null?'—':ms.ada.toFixed(1))+'</b><span>of '+ROSTER.length+' enrolled</span></div>'+
+    '<div class="stat"><small>Attendance for the month</small><b>'+(ms.pct==null?'—':ms.pct.toFixed(1)+'%')+'</b><span>ADA ÷ enrolment</span></div>'+
+    '<div class="stat"><small>Absences (absent + excused)</small><b>'+nA+'</b><span>'+nT+' tardy (late or cutting)</span></div></div>';
+
+  var flag=[],watch=[];
+  ROSTER.forEach(function(s){var q=ms.per[s.id];
+    if(q.maxRun>=5) flag.push('<span class="tag">'+esc(s.last+', '+s.short)+' · '+q.maxRun+' days in a row</span>');
+    else if(q.abs>=3) watch.push('<span class="tag watch">'+esc(s.last+', '+s.short)+' · '+q.abs+' absences</span>');});
+  var attn=(flag.length||watch.length)?'<section><h2 class="sr">Needs attention</h2><div class="attn"><span class="lbl" style="margin:0">Needs attention</span>'+flag.join('')+watch.join('')+'</div></section>':'';
+
+  var dh='';
+  dates.forEach(function(ds,i){
+    var w=dow(ds), dd=dayDoc(ds), wk=(w===0||w===6);
+    dh+='<th class="'+(wk?'wk':'')+'"><button type="button" class="dhb" data-act="day" data-date="'+ds+'" aria-label="'+esc(longDate(ds))+': day settings"'+(ds===today?' style="color:var(--accent)"':'')+'><span>'+SF[w]+'</span><b>'+(i+1)+'</b></button></th>';
+  });
+  function row(s,idx){
+    var cells='';
+    dates.forEach(function(ds){
+      var w=dow(ds), dd=dayDoc(ds), wk=(w===0||w===6), rec=isRecorded(ds), nc=dd&&dd.noClass;
+      var st=stOf(ds,s.id);
+      var cls=(wk?'wk':'')+(nc?' off':'');
+      cells+='<td class="'+cls+'"><button type="button" class="cell" data-act="cell" data-sid="'+s.id+'" data-date="'+ds+'" aria-label="'+esc(s.full+', '+shortDate(ds)+': '+ST[st])+'">'+(nc?'':glyph(st,rec))+'</button></td>';
+    });
+    var q=ms.per[s.id];
+    return '<tr><td class="c-no">'+(idx+1)+'</td><th class="c-name" scope="row"><span class="nm">'+esc(s.full)+'</span></th>'+cells+
+      '<td class="tot" style="color:'+(q.abs?'var(--A)':'inherit')+'">'+q.abs+'</td><td class="tot">'+q.tardy+'</td><td class="tot">'+(ms.days-q.abs)+'</td></tr>';
+  }
+  function sumRow(label,key){
+    var cells='',tot=0;
+    dates.forEach(function(ds){var w=dow(ds),wk=(w===0||w===6),pd=ms.perDay[ds];var v=pd?(key==='T'?pd.M+pd.F:pd[key]):'';if(pd)tot+=v;cells+='<td class="'+(wk?'wk':'')+'" style="font-size:12px">'+v+'</td>';});
+    return '<tr class="sum"><td class="c-no"></td><th class="c-name" scope="row"><span class="nm">'+label+'</span></th>'+cells+'<td class="tot" colspan="3">'+(ms.days?tot:'')+'</td></tr>';
+  }
+  var body='<tr class="grp"><th colspan="'+(dates.length+5)+'">Male</th></tr>'+MALES.map(row).join('')+sumRow('Male · present per day','M')+
+    '<tr class="grp"><th colspan="'+(dates.length+5)+'">Female</th></tr>'+FEMALES.map(row).join('')+sumRow('Female · present per day','F')+sumRow('Combined · present per day','T');
+
+  var legend='<div class="legend"><span><i class="g gA">x</i> Absent</span><span><i class="g gE">E</i> Excused (counts as absent)</span><span><i class="g gC"></i> Cutting classes</span><span><i class="g gL"></i> Late comer</span><span><i class="gP" style="display:inline-block"></i> Present</span><span>Cutting and late count as present (tardy). Tap any cell to edit; tap a date for holiday or no-class.</span></div>';
+  var table='<div class="reg-wrap" tabindex="0" aria-label="Monthly attendance register"><table class="reg"><thead><tr><th class="c-no">No.</th><th class="c-name">Learner (Last, First, Middle)</th>'+dh+
+    '<th class="tot">Absent</th><th class="tot">Tardy</th><th class="tot">Present</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+
+  var empty=ms.days?'':'<div class="empty"><svg viewBox="0 0 32 44" aria-hidden="true"><use href="#tulip"/></svg>No attendance recorded for '+MONTHS[m-1]+' yet. Entries from the class monitor appear here as soon as they are saved.</div>';
+
+  var rk=Object.keys(ms.reasons).sort(function(a,b){return ms.reasons[b]-ms.reasons[a];});
+  var rr=rk.map(function(k){var r=R_BY[k];return '<div class="rrow"><code>'+(r.sf2||'—')+'</code><span>'+esc(r.label)+'</span><em>'+ms.reasons[k]+'</em></div>';}).join('');
+  if(ms.noReason) rr+='<div class="rrow"><code>—</code><span>No reason recorded</span><em>'+ms.noReason+'</em></div>';
+  var reasons=rr?'<section><div class="sec-h"><h2>Reasons this month</h2><span class="foot" style="margin:0">Count of absent, excused, cutting and late marks, by SF2 reason code</span></div><div class="reasons">'+rr+'</div></section>':'';
+
+  var dlBtn='<div style="display:flex;gap:8px;flex-wrap:wrap">'+(S.canDownload?'<button type="button" class="btn sec" data-act="csv">Download month (CSV)</button>':'')+'<button type="button" class="btn" data-act="sf2">SF2 for printing</button></div>';
+  return head+notes+stats+attn+empty+
+    '<section class="regsec"><div class="sec-h"><h2>'+MONTHS[m-1]+' '+y+' register</h2>'+dlBtn+'</div>'+legend+table+'</section>'+reasons+backupCard();
+}
+
+/* ---------- render ---------- */
+var lastCentered='';
+function render(){
+  document.querySelectorAll('[data-act="mode"]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.mode===S.mode?'true':'false');});
+  var scrollY=window.scrollY;
+  var keep=document.querySelector('.reg-wrap'); var rx=keep?keep.scrollLeft:0, ry=keep?keep.scrollTop:0;
+  $app.innerHTML=S.mode==='monitor'?monitorHTML():teacherHTML();
+  var reg=document.querySelector('.reg-wrap'); if(reg){reg.scrollLeft=rx;reg.scrollTop=ry;}
+  var strip=document.getElementById('strip');
+  if(strip){
+    var cur=strip.querySelector('[aria-current="date"]');
+    var tag=S.date;
+    if(cur&&(lastCentered!==tag)){strip.scrollLeft=cur.offsetLeft-strip.clientWidth/2+cur.offsetWidth/2;lastCentered=tag;}
+    else if(window._stripX!=null){strip.scrollLeft=window._stripX;}
+  }
+  window.scrollTo(0,scrollY);
+}
+
+/* ---------- sheet ---------- */
+function openCell(sid,date){
+  var m=markOf(date,sid), had=!!(m&&m.st&&m.st!=='P');
+  S.sheet={type:'cell',sid:sid,date:date,had:had,st:had?m.st:'A',reason:had?(m.reason||''):'',note:had?(m.note||''):'',more:false};
+  drawSheet();
+}
+function openDay(date){
+  var d=dayDoc(date)||{};
+  S.sheet={type:'day',date:date,noClass:!!d.noClass,label:d.noClassLabel||'',taken:!!d.taken};
+  drawSheet();
+}
+function closeSheet(){S.sheet=null;$sheet.hidden=true;$sheet.innerHTML='';}
+function drawSheet(){
+  var sh=S.sheet; if(!sh){return;}
+  var html;
+  if(sh.type==='cell'){
+    var s=BY_ID[sh.sid];
+    var prim=PRIMARY[sh.st]||[], teacher=S.mode==='teacher';
+    var list=prim.map(function(id){return R_BY[id];});
+    if(sh.more){REASONS.forEach(function(r){if(prim.indexOf(r.id)<0&&(!r.t||teacher))list.push(r);});}
+    var chips=list.map(function(r){return '<button type="button" class="rc" data-act="reason" data-id="'+r.id+'" aria-pressed="'+(sh.reason===r.id?'true':'false')+'">'+esc(r.label.replace(/ \(.*\)/,''))+'</button>';}).join('');
+    var moreBtn=sh.more?'':'<button type="button" class="rc" data-act="more">More reasons…</button>';
+    var seg=['A','E','C','L'].map(function(k){return '<button type="button" data-act="status" data-st="'+k+'" aria-pressed="'+(sh.st===k?'true':'false')+'">'+ST[k]+'</button>';}).join('');
+    html='<div class="scrim" data-act="close"></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shT" tabindex="-1">'+
+      '<div class="grab"></div><div class="sh-head"><svg class="ic" viewBox="0 0 32 44" aria-hidden="true"><use href="#tulip"/></svg>'+
+      '<div><h2 id="shT">'+esc(s.last+', '+s.short)+'</h2><p>'+esc(longDate(sh.date))+'</p></div><button type="button" class="x" data-act="close" aria-label="Close">'+XICON+'</button></div>'+
+      '<fieldset class="seg" aria-label="Status"><legend class="sr">Status</legend>'+seg+'</fieldset>'+
+      '<div><span class="lbl">Reason</span><div class="chips">'+chips+moreBtn+'</div></div>'+
+      '<div><label class="lbl" for="note">Note (optional)</label><input type="text" id="note" maxlength="140" style="width:100%" placeholder="'+(sh.reason==='other'?'Type the reason':'e.g. fever since Sunday')+'" value="'+esc(sh.note)+'" autocomplete="off"></div>'+
+      '<div class="sh-actions">'+(sh.had?'<button type="button" class="btn sec" data-act="present">Mark present</button>':'')+'<button type="button" class="btn" data-act="savecell">Save</button></div></div>';
+  } else {
+    html='<div class="scrim" data-act="close"></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shT" tabindex="-1">'+
+      '<div class="grab"></div><div class="sh-head"><svg class="ic" viewBox="0 0 32 44" aria-hidden="true"><use href="#tulip"/></svg>'+
+      '<div><h2 id="shT">'+esc(longDate(sh.date))+'</h2><p>Day settings</p></div><button type="button" class="x" data-act="close" aria-label="Close">'+XICON+'</button></div>'+
+      '<label class="tgl"><input type="checkbox" id="ncChk"'+(sh.noClass?' checked':'')+'> No classes (holiday, suspension, event)</label>'+
+      '<div><label class="lbl" for="ncLbl">Reason for no classes</label><input type="text" id="ncLbl" maxlength="80" style="width:100%" placeholder="e.g. Undas, class suspension" value="'+esc(sh.label)+'" autocomplete="off"></div>'+
+      '<label class="tgl"><input type="checkbox" id="tkChk"'+(sh.taken?' checked':'')+'> Attendance recorded (everyone not marked is present)</label>'+
+      '<div class="sh-actions"><button type="button" class="btn" data-act="saveday">Save</button></div></div>';
+  }
+  $sheet.innerHTML=html; $sheet.hidden=false;
+  var dlg=$sheet.querySelector('.sheet'); if(dlg) dlg.focus({preventScroll:true});
+}
+
+var toastT=null;
+function toast(msg){$toast.textContent=msg;$toast.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){$toast.hidden=true;},2600);}
+
+/* ---------- actions ---------- */
+function setDate(d){S.date=clamp(d);render();}
+function stepSchool(dir){var d=S.date;for(var i=0;i<8;i++){d=addDays(d,dir);if(d<START||d>END){return;}if(!isWeekend(d)){break;}}setDate(d);}
+function exportBackup(){
+  if(!dl){toast('Downloads are not available here.');return;}
+  var t=new Date(), stamp=t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(t.getDate());
+  var data=JSON.stringify({app:'tulip-attendance',v:1,section:'Grade 11 Tulip',exported:Date.now(),days:S.days},null,1);
+  dl.save({filename:'Tulip-Attendance-backup-'+stamp+'.json',data:data}).then(function(){
+    try{localStorage.setItem(BACKUP_KEY,String(Date.now()));}catch(e){}
+    toast('Backup file saved'); render();
+  }).catch(function(){toast('Could not download the backup.');});
+}
+function importBackup(f){
+  if(!f) return; var r=new FileReader();
+  r.onerror=function(){toast('Could not read that file.');};
+  r.onload=function(){
+    try{
+      var o=JSON.parse(r.result), inc=o&&o.days;
+      if(!inc||typeof inc!=='object'||(o.app&&o.app!=='tulip-attendance')) throw new Error('bad');
+      var days=Object.assign({},S.days), n=0;
+      Object.keys(inc).forEach(function(k){
+        var a=inc[k], b=days[k]; if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||k<START||k>END||!a||typeof a!=='object') return;
+        var marks={}, am=a.marks||{};
+        Object.keys(am).forEach(function(sid){var m=am[sid]; if(BY_ID[sid]&&m&&ST[m.st]) marks[sid]={st:m.st,reason:R_BY[m.reason]?m.reason:'',note:String(m.note||'').slice(0,140)};});
+        var nd={date:k,taken:!!a.taken,noClass:!!a.noClass,noClassLabel:String(a.noClassLabel||'').slice(0,80),marks:marks};
+        if(typeof a.takenAt==='number') nd.takenAt=a.takenAt;
+        if(b){nd.marks=Object.assign({},b.marks||{},marks); nd.taken=!!(b.taken||nd.taken); nd.noClass=!!(b.noClass||nd.noClass); nd.noClassLabel=nd.noClassLabel||b.noClassLabel||''; if(nd.takenAt==null&&b.takenAt!=null) nd.takenAt=b.takenAt;}
+        days[k]=nd; n++;
+      });
+      if(db){Object.keys(days).forEach(function(k){if(days[k]!==S.days[k]) pushDay(k,days[k]);});} S.days=days; persist(); render(); toast('Restored '+n+' day'+(n===1?'':'s'));
+    }catch(e){toast('That file is not a Tulip attendance backup.');}
+    document.getElementById('restoreFile').value='';
+  };
+  r.readAsText(f);
+}
+function csvEsc(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function exportCsv(){
+  var p=parse(S.date), ms=monthStats(p.y,p.m), dates=ms.dates, rows=[];
+  rows.push(['Section Tulip · Grade 11 · '+MONTHS[p.m-1]+' '+p.y,'','']);
+  rows.push(['x = absent, E = excused (counts as absent), C = cutting classes, L = late comer (C and L count as present)']);
+  rows.push(['No.','Learner','Sex'].concat(dates.map(function(d){return parse(d).d+' '+SF[dow(d)];}),['Absent','Tardy','Present','Reasons']));
+  ROSTER.forEach(function(s,i){
+    var why=[];
+    var cells=dates.map(function(ds){
+      if(!isRecorded(ds)) return '';
+      var st=stOf(ds,s.id);
+      if(st!=='P'){var t=reasonText(markOf(ds,s.id)); if(t) why.push(parse(ds).d+': '+t);}
+      return st==='A'?'x':(st==='P'?'':st);
+    });
+    var q=ms.per[s.id];
+    rows.push([i+1,s.full,s.sex].concat(cells,[q.abs,q.tardy,ms.days-q.abs,why.join('; ')]));
+  });
+  rows.push([]);
+  rows.push(['','Days of classes recorded',ms.days]);
+  rows.push(['','Average daily attendance',ms.ada==null?'':ms.ada.toFixed(2)]);
+  rows.push(['','Percentage of attendance',ms.pct==null?'':ms.pct.toFixed(2)+'%']);
+  var csv='﻿'+rows.map(function(r){return r.map(csvEsc).join(',');}).join('\r\n');
+  if(!dl){toast('Download is not available here.');return;}
+  dl.save({filename:'Tulip-Attendance-'+MONTHS[p.m-1]+'-'+p.y+'.csv',data:csv}).then(function(){toast('Saved');}).catch(function(e){if(e&&e.code!=='declined')toast('Could not download the file.');});
+}
+
+document.addEventListener('click',function(e){
+  var el=e.target.closest('[data-act]'); if(!el) return;
+  var a=el.dataset.act, sh=S.sheet;
+  switch(a){
+    case 'mode': S.mode=el.dataset.mode; try{localStorage.setItem('tulip-mode',S.mode);}catch(x){} render(); break;
+    case 'pick': window._stripX=document.getElementById('strip').scrollLeft; S.date=el.dataset.date; lastCentered=S.date; render(); break;
+    case 'prevday': stepSchool(-1); break;
+    case 'nextday': stepSchool(1); break;
+    case 'today': window._stripX=null; lastCentered=''; setDate(todayStr()); break;
+    case 'prevmonth': case 'nextmonth': {
+      var p=parse(S.date), mm=p.m+(a==='prevmonth'?-1:1), yy=p.y; if(mm<1){mm=12;yy--;} if(mm>12){mm=1;yy++;}
+      var cand=ymd(yy,mm,Math.min(p.d,dim(yy,mm))); if(cand<START||cand>END){break;} setDate(cand); break; }
+    case 'open': openCell(el.dataset.sid,S.date); break;
+    case 'cell': openCell(el.dataset.sid,el.dataset.date); break;
+    case 'day': openDay(el.dataset.date); break;
+    case 'close': closeSheet(); break;
+    case 'status': sh.st=el.dataset.st; if(sh.reason&&!(PRIMARY[sh.st].indexOf(sh.reason)>=0)&&!sh.more){sh.reason='';} drawSheet(); break;
+    case 'reason': sh.reason=(sh.reason===el.dataset.id)?'':el.dataset.id; drawSheet(); { var n=document.getElementById('note'); if(n&&sh.reason==='other')n.focus(); } break;
+    case 'more': sh.more=true; drawSheet(); break;
+    case 'savecell': {
+      var nt=(document.getElementById('note').value||'').trim(), s=BY_ID[sh.sid], mk={};
+      mk[sh.sid]={st:sh.st,reason:sh.reason||'',note:nt};
+      writeDay(sh.date,{marks:mk}); toast(s.last+' · '+ST[sh.st]); closeSheet(); break; }
+    case 'present': {
+      var mk2={}; mk2[sh.sid]={st:'P',reason:'',note:''};
+      writeDay(sh.date,{marks:mk2}); toast(BY_ID[sh.sid].last+' · Present'); closeSheet(); break; }
+    case 'saveday': {
+      var nc=document.getElementById('ncChk').checked, lb=(document.getElementById('ncLbl').value||'').trim(), tk=document.getElementById('tkChk').checked;
+      var patch={noClass:nc,noClassLabel:lb,taken:tk}; if(tk&&!sh.taken)patch.takenAt=Date.now();
+      writeDay(sh.date,patch); toast('Day saved'); closeSheet(); break; }
+    case 'take': writeDay(S.date,{taken:true,takenAt:Date.now()}); toast('Attendance saved'); break;
+    case 'untake': writeDay(S.date,{taken:false}); break;
+    case 'csv': exportCsv(); break;
+    case 'backup': exportBackup(); break;
+    case 'restore': document.getElementById('restoreFile').click(); break;
+    case 'sf2': openSf2(); break;
+    case 'sf2close': closeSf2(); break;
+    case 'sf2dl': sf2Download(); break;
+  }
+});
+document.addEventListener('input',function(e){
+  if(!S.sheet) return;
+  if(e.target.id==='note') S.sheet.note=e.target.value;
+});
+document.addEventListener('change',function(e){
+  if(e.target.id==='restoreFile'){importBackup(e.target.files&&e.target.files[0]);return;}
+  if(e.target.id==='monthSel'){
+    var v=e.target.value.split('-'), y=+v[0], m=+v[1], p=parse(S.date);
+    window._stripX=null; lastCentered=''; setDate(ymd(y,m,Math.min(p.d,dim(y,m))));
+  }
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){if(sf2State)closeSf2();else if(S.sheet)closeSheet();}});
+
+/* ---------- garden strip ---------- */
+(function(){
+  var g=document.getElementById('garden'), cols=['--t1','--t3','--t2','--t4','--t5','--t2','--t1','--t5','--t3','--t4'];
+  var hs=[40,30,44,34,42,28,38,44,32,40], out='';
+  for(var i=0;i<26;i++){var h=hs[i%hs.length],w=Math.round(h*32/44);out+='<svg width="'+w+'" height="'+h+'" viewBox="0 0 32 44" style="color:var(--'+cols[i%cols.length].slice(2)+')"><use href="#tulip"/></svg>';}
+  g.innerHTML=out;
+})();
+
+/* ---------- SF2 printable form (same layout as the school's SF2-SHS workbook) ---------- */
+var LOGO_SEAL='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAG4AAABtCAMAAAB3EaRnAAABgFBMVEWjKSmkaShtXmXdpxzi0almJSbEsJr+0x/h4t5mW6grIZ9fT8i2lFa0pJLQrF1oOEyZYFQlFXehNkKdkuBDLcOBZZSIeODewnEuLi7KYSX+/f7p6OwWAabX1tbIx8kvF5RsR3e4t7kRBZLOyOtVNYYqF6dHKYra1e4hB6JnV8h1Z8tJOLOqqauShtI3Ja6FeNB5U3Cvp9o2I40kDJxWRrj9xSnh3fDDu+mkmti8s+axp+dXOHe8uM9YR8RiPXzXpitmV7h3ZJKck9SlmeXtuCyQhZDnx29vV5DImSj91i6CWWyziSiReY/ux03Hp2l9cc2TSEmvmIxkRYfq49XAvMnPqlCYlZa1mXPYuG23iBjNxrG9kimWh+bOuI50Za6WVFNBLLJYRJLZs0/ly4zm1rFGKm2EZ4yGeK2Ti6yniHalnavk3M9YRHK7o3DlvE+Vd3n72FHw15ZOPcJ6cpaLODmNanSmiYvLlhnirSX21XAcE6UuF3k9KHlgPYCMKCmdmqiYKWy9AAAAgHRSTlP//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////xUHpOoAABI8SURBVHjavVoHe9u4spXT++7evZVgL6JIiqQo0VTvzYplO+4tdnrvySbZbP3rdwCQ6nbsm32P32eJpkAczOBMATAx5v/1ip2uOUIcN/yH4RBC/1dwuGsMNwBAOscjjPmXw+EeudmSwCi4vxYOUbzwat5GjG7qDBM0zR/1CHOsyTfBjY8eGbLN5FiF0cua72i5oZQnAIydQIvkUspK+MSUtaDkKIyrKQzyjdHWwdcQY18BI6/nbZ1RHDuSznJqABc4LqHLYDz5kTf+J7iIG65sZRkjksMws5p/V9GdJuMZfqRMRZON7Jg+Tgk3fC/ryFq+YSkRHGPKjoKsFQY1NT9s42o5UyvrXxEwdjxY1mjiL6tmajWtEMIZTGCxWabJuooXwQX4RnF1ymJ0WrhQj7dlFs+QayFbk136UwGkVJrQcbP83rmapQ9/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', LOGO_DEPED='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWgAAAC2CAMAAADDeOcMAAABgFBMVEX+/v4nN4PkCxgpN3jo6Oy0uMtNV4zHydaqrcLNEyjX2uM3QnzP0dySl7S1Fi84RodudZq7xNRaY5GGiqtka5SOSGZweaeSKkZBTISPN1Sjprx7gqne4eiOVnKUepTmGCXlEhudobmim7HmKTTiDyD4yMvrRU9CSnv51df0pqtcaKGLaYWbo8beCxrxhoyXHDnuaXH2tLmSmsHpOkQmLWXmKhvrW2TvcnrKzeDwfYTylJr0uCz8/DXrVFz55zKMQF3oNDfqVSBhbaSJYX+SgZzwiyfxlyjypypKUn16Nlh9RmfnOB3sZSP3vcB7WnqWIDzznqP2yS742jDoQh7qTiDueyX73+GZHkDRDyEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAovvR4AAAAgHRSTlP//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJmvoE0AABY0SURBVHja7Z0Jd5zGsoAZoBsG6IEBNLukmciWbEuybDlO7HiP4+w3N8ld3vv/v+TRGzRMs8NYfoc6ybFmoWk+aqqrqqsbRfkC5B/KIIeQh48HBoeQB6f6AOEQcnY+MDiEvFQfDhAOYTi22wcDhQPIE/VsgHAA0U/VwUQfxLVT1W8GCgeQb1X1yUDhAPJGVd8MFA4g56r6bKBwGNBDYHgI+UbdDgHLIeRxBHqwHQeQ+2ok3w0c+pczTPrpwKF3+Q6D3g5mun95j0kPUcsBrPSWkH52f0DRE2BumJ+qVIYJrb6s8zmzzE9PKenz/w5QepGnp+c05//gnJI+HcbEfuTBKUf7hJmPlwOUvgZCRvolI/1mSHz05UXfT+v0s2EGsRd5Fk8ZnjHSZ4Of15NKM+PxkIFWTwfSfYyHajw5ezaQ7lH00zjx/0aN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';
+var SCHOOL={name:'Marao National High School',id:'303402',district:'Inopacan',division:'Leyte',region:'Region VIII',
+  grade:'Grade 11',track:'Academic Track - General Academic Strand',section:'TULIP',adviser:'ARNOLD M. CONSULAR',head:'FLORENCIO P. DOTOLLO'};
+var PRINT_NAME={
+ m01:'Abastillas,Wilmar, Pollo',m02:'Cabero, Julz Juzstniel',m03:'Corpez,Arjay, Danieles',m04:'Dotollo,Mark Jason, Madrazo',
+ m05:'Espijo, Jorose',m06:'Llanos,John Paul, Lawag',m07:'Molato,Sanderson, Floro',m08:'Murillo,William, Basinillo',
+ m09:'Perandos,Sammy Jr., Porazo',m10:'Pigte, April Rabago',m11:'Sacro, Romeo Jr.',m12:'Vero,Jairus Khen, Dedal',
+ f01:'Abenoja,Avegail, Saligumba',f02:'Albesa,Princess Ann, Rabago',f03:'Alias,Joanna Grace, -',f04:'Ardillo,Lea Mae, Kuezon',
+ f05:'Asunto,Abegel Stephanie, Oracion',f06:'Bisnar,Greshan Mirth, Morata',f07:'Costamero,Angela, Acidillo',
+ f08:'Dedal,Lyka Amor, Polistico',f09:'Luego,Kristy Leigh, Piamonte',f10:'Pollo,Marie France, Jomoc',
+ f11:'Peras,Daphney, Bisnar',f12:'Rosales,Cristine, Consular',f13:'Villacorte,Marianne, Casia'
+};
+var SF2_CSS=[
+ '@page{size:A4 landscape;margin:7mm}',
+ '*{box-sizing:border-box}',
+ 'html{background:#d4d4d4;-webkit-print-color-adjust:exact;print-color-adjust:exact}',
+ 'body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#000;font-size:8px;line-height:1.2}',
+ '.tip{position:sticky;top:0;z-index:5;background:#1f1f1f;color:#fff;font-size:12px;padding:8px 14px;line-height:1.4}',
+ '.tip b{color:#ffd966}',
+ '.page{width:283mm;height:196mm;margin:12px auto;background:#fff;overflow:hidden;padding:0 1mm}',
+ '.ed{background:#fff8cc;outline:1px dashed #c9a400;outline-offset:-1px}',
+ '.ed:empty:before{content:"type";color:#b8a24a}',
+ '@media print{html{background:#fff}.tip{display:none}.page{margin:0;break-after:page;page-break-after:always}.page:last-child{break-after:auto;page-break-after:auto}.ed{background:none;outline:0}.ed:empty:before{content:""}}',
+ /* header */
+ '.hd{display:flex;align-items:center;justify-content:space-between;padding:2px 0 0}',
+ '.hd img.seal{height:54px;width:54px}.hd img.deped{height:36px;margin-right:6px}',
+ '.hd h1{font-size:13px;margin:0;text-align:center;font-weight:700;flex:1}',
+ '.fr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;padding:0 4px}',
+ '.f{display:flex;align-items:center;gap:4px;font-size:8px;white-space:nowrap}',
+ '.f.g{flex:1}',
+ '.b{border:1px solid #000;text-align:center;padding:2px 6px;min-height:14px;font-size:8px;line-height:10px;flex:1}',
+ '.fr.r3{justify-content:flex-start;gap:14px}',
+ '.tool{display:flex;justify-content:flex-end;margin:4px 4px 0}',
+ '.tool .f{width:230px;justify-content:flex-end}',
+ '.tool .tl{font-weight:700;border:1px solid #000;padding:2px 8px;font-size:8px}',
+ '.tool .tb{border:1px solid #000;width:44px;height:15px;margin-left:-1px}',
+ /* register */
+ 'table.reg{border-collapse:collapse;table-layout:fixed;width:100%;margin-top:5px;border:1.5px solid #000}',
+ '.reg th,.reg td{border:1px solid #000;padding:0 2px;text-align:center;overflow:hidden}',
+ '.reg col.no{width:22px}.reg col.nm{width:168px}.reg col.tt{width:36px}.reg col.rem{width:150px}',
+ '.reg th{font-size:7px;font-weight:700;height:11px}',
+ '.reg th.hl{text-align:left;font-weight:400;font-size:6.5px;vertical-align:top}',
+ '.reg th.d{font-size:9px;font-weight:400;height:13px}',
+ '.reg th.w{font-size:6.5px;font-weight:400;height:11px}',
+ '.reg th.nmh{font-size:7px;line-height:1.25;vertical-align:middle}',
+ '.reg th.remh{font-size:5.5px;font-weight:700;line-height:1.15;text-align:center;vertical-align:middle;padding:1px 3px}',
+ '.reg td{height:17.5px;font-size:7.5px}',
+ '.reg td.no{font-size:7.5px}',
+ '.reg td.nm{text-align:left;padding-left:5px;white-space:nowrap;font-size:8px}',
+ '.reg td.x{font-size:10px;font-weight:700}',
+ '.reg td.cut{background:linear-gradient(to bottom,#fff 50%,#000 50%)}',
+ '.reg td.late{background:linear-gradient(to bottom,#000 50%,#fff 50%)}',
+ '.reg td.nc,.reg th.nc{background:#d9d9d9}',
+ '.reg td.tt{font-size:9px}',
+ '.reg td.rem{text-align:left;font-size:6px;line-height:7px;padding:1px 3px}',
+ '.reg td.rem div{max-height:15px;overflow:hidden}',
+ '.reg tr.tot td{font-weight:700;font-size:8px}',
+ '.reg tr.tot td.lb{font-weight:400;font-size:8px;text-align:center}',
+ '.reg tr.tot td.tn{font-size:8px;font-weight:400}',
+ /* bottom page */
+ '.bt{display:grid;grid-template-columns:36fr 27fr 36fr;gap:1.2%;align-items:start;padding:6px 3px 0}',
+ '.nt{font-size:8px;line-height:1.35}',
+ '.nt p{margin:0 0 7px}',
+ '.fm{display:flex;align-items:center;gap:6px;margin:0 0 10px 12px;font-size:8px}',
+ '.fm .fl{width:150px}.fm .fx{display:flex;flex-direction:column;align-items:center;min-width:170px}',
+ '.fm .fx .n{border-bottom:1px solid #000;padding:0 4px 1px;text-align:center}.fm .fx .dn{padding-top:1px;text-align:center}',
+ '.cd{border:1px solid #000;padding:5px 6px;font-size:6.5px;line-height:1.3;min-height:400px}',
+ '.cd h4{margin:0 0 3px;font-size:6.5px}',
+ '.cd .gp{font-weight:700;margin:10px 0 3px}',
+ '.cd p{margin:0 0 6px}',
+ '.cd .it{margin:0}',
+ '.lis{text-align:center;font-size:8px;margin-top:14px;padding-top:3px;border-top:1px solid #000;width:70%;margin-left:auto;margin-right:auto}',
+ 'table.sm{border-collapse:collapse;table-layout:fixed;width:100%;font-size:7px}',
+ '.sm td{border:1px solid #000;padding:1px 3px;text-align:center;height:17px}',
+ '.sm td.l{text-align:left;font-size:6.5px}',
+ '.sm td.sub{padding-left:14px}',
+ '.sm col.c1{width:24%}.sm col.c2{width:30%}.sm col.cv{width:15.3%}',
+ '.sm td.hh{font-weight:700;font-size:7px;height:15px}',
+ '.sm td.big{font-size:9px}',
+ '.sm tr.band td{background:#9a9a9a;height:9px;padding:0}',
+ '.cert{margin-top:12px;text-align:center}',
+ '.cert .ct{font-style:italic;font-size:9px;text-align:left;margin-left:2px}',
+ '.sig{margin:14px auto 0;width:78%;text-align:center}',
+ '.sig .nmn{font-weight:400;font-size:9px;min-height:12px}',
+ '.sig .cp{border-top:1px solid #000;font-size:6.5px;padding-top:1px}'
+].join('\n');
+
+function sfTxt(t){return esc(t).replace(/\n/g,'<br>');}
+function sfTrim(v){return String(+v.toFixed(2));}
+function sfPct(v){return v.toFixed(1)+'%';}
+
+function sf2Remarks(s,dates,idx){
+  var groups=[];
+  dates.forEach(function(ds){
+    if(!isRecorded(ds)) return;
+    var mk=markOf(ds,s.id), st=mk&&mk.st?mk.st:'P'; if(st==='P') return;
+    var why=reasonText(mk), lab;
+    if(st==='A') lab=why||'Absent';
+    else if(st==='E') lab='Excused'+(why?' - '+why:'');
+    else lab=ST[st]+(why?' - '+why:'');
+    var d=parse(ds).d, last=groups[groups.length-1];
+    if(last&&last.lab===lab&&idx[ds]===last.i+1){last.to=d;last.i=idx[ds];}
+    else groups.push({from:d,to:d,lab:lab,i:idx[ds]});
+  });
+  return groups.map(function(g){return (g.from===g.to?g.from:g.from+'-'+g.to)+' '+g.lab;}).join('; ');
+}
+
+function sf2Doc(y,m){
+  var ms=monthStats(y,m);
+  var dates=ms.dates.filter(function(ds){return dow(ds)!==0||isRecorded(ds);});
+  var nC=dates.length, nDays=ms.days, idx={}, k=0;
+  dates.forEach(function(ds){if(isRecorded(ds)){idx[ds]=k++;}});
+  var month=MONTHS[m-1].toUpperCase();
+  var sy=m>=6?(y+'-'+(y+1)):((y-1)+'-'+y);
+  var term=(m>=9&&m<=11)?'SECOND TERM':'';
+  function isNc(ds){var d=dayDoc(ds);return !!(d&&d.noClass);}
+
+  /* register */
+  var head='<tr><th rowspan="3">No.</th><th rowspan="3" class="nmh"><b>NAME</b><br>(Last Name, First Name, Middle Name)</th>'+
+    '<th class="hl" colspan="'+nC+'">DATE</th><th colspan="2" rowspan="2">Total for the<br>Month</th>'+
+    '<th rowspan="3" class="remh">REMARKS (If NLPA, state reason, please refer to legend number 2. If TRANSFERRED IN/OUT, write the name of School.)</th></tr>'+
+    '<tr>'+dates.map(function(ds){return '<th class="d'+(isNc(ds)?' nc':'')+'">'+parse(ds).d+'</th>';}).join('')+'</tr>'+
+    '<tr>'+dates.map(function(ds){return '<th class="w'+(isNc(ds)?' nc':'')+'">'+SF[dow(ds)]+'</th>';}).join('')+'<th>ABSENT</th><th>PRESENT</th></tr>';
+
+  function rowsFor(list){
+    return list.map(function(s,i){
+      var cells=dates.map(function(ds){
+        if(isNc(ds)) return '<td class="nc"></td>';
+        if(!isRecorded(ds)) return '<td></td>';
+        var st=stOf(ds,s.id);
+        if(st==='A'||st==='E') return '<td class="x">x</td>';
+        if(st==='C') return '<td class="cut"></td>';
+        if(st==='L') return '<td class="late"></td>';
+        return '<td></td>';
+      }).join('');
+      var q=ms.per[s.id];
+      return '<tr><td class="no">'+(i+1)+'</td><td class="nm">'+esc(PRINT_NAME[s.id]||s.full)+'</td>'+cells+
+        '<td class="tt">'+(nDays?q.abs:'')+'</td><td class="tt">'+(nDays?nDays-q.abs:'')+'</td>'+
+        '<td class="rem"><div>'+esc(sf2Remarks(s,dates,idx))+'</div></td></tr>';
+    }).join('');
+  }
+  var sumM=0,sumF=0,absM=0,absF=0;
+  dates.forEach(function(ds){var pd=ms.perDay[ds]; if(pd){sumM+=pd.M;sumF+=pd.F;}});
+  MALES.forEach(function(s){absM+=ms.per[s.id].abs;}); FEMALES.forEach(function(s){absF+=ms.per[s.id].abs;});
+  function totRow(label,key){
+    var cells=dates.map(function(ds){
+      if(isNc(ds)) return '<td class="nc"></td>';
+      var pd=ms.perDay[ds]; if(!pd) return '<td></td>';
+      return '<td class="tn">'+(key==='T'?pd.M+pd.F:pd[key])+'</td>';
+    }).join('');
+    var a=key==='M'?absM:(key==='F'?absF:absM+absF), p=key==='M'?sumM:(key==='F'?sumF:sumM+sumF);
+    return '<tr class="tot"><td></td><td class="lb">'+label+'</td>'+cells+'<td class="tt">'+(nDays?a:'')+'</td><td class="tt">'+(nDays?p:'')+'</td><td></td></tr>';
+  }
+  var body=rowsFor(MALES)+totRow('&#8656;== MALE | TOTAL Per Day ==&#8658;','M')+rowsFor(FEMALES)+totRow('&#8656;== FEMALE | TOTAL Per Day ==&#8658;','F')+totRow('Combined TOTAL Per Day','T');
+  var colgroup='<colgroup><col class="no"><col class="nm">'+dates.map(function(){return '<col>';}).join('')+'<col class="tt"><col class="tt"><col class="rem"></colgroup>';
+
+  var top='<div class="hd"><img class="seal" src="'+LOGO_SEAL+'" alt=""><h1>School Form 2 Daily Attendance Report of Learners For Senior High School (SF2-SHS)</h1><img class="deped" src="'+LOGO_DEPED+'" alt="DepEd"></div>'+
+    '<div class="fr"><span class="f g" style="flex:1.7"><span>School Name</span><span class="b">'+esc(SCHOOL.name)+'</span></span>'+
+      '<span class="f g"><span>School ID</span><span class="b">'+SCHOOL.id+'</span></span>'+
+      '<span class="f g"><span>District</span><span class="b">'+SCHOOL.district+'</span></span>'+
+      '<span class="f g"><span>Division</span><span class="b">'+SCHOOL.division+'</span></span>'+
+      '<span class="f g"><span>Region</span><span class="b">'+SCHOOL.region+'</span></span></div>'+
+    '<div class="fr"><span class="f g"><span>Semester</span><span class="b ed" contenteditable="true">'+term+'</span></span>'+
+      '<span class="f g"><span>School Year</span><span class="b">'+sy+'</span></span>'+
+      '<span class="f g"><span>Grade Level</span><span class="b">'+SCHOOL.grade+'</span></span>'+
+      '<span class="f g" style="flex:2.2"><span>Track and Strand</span><span class="b">'+esc(SCHOOL.track)+'</span></span></div>'+
+    '<div class="fr r3"><span class="f" style="width:230px"><span>Section</span><span class="b">'+SCHOOL.section+'</span></span>'+
+      '<span class="f g"><span>Course (for TVL only)</span><span class="b"></span></span>'+
+      '<span class="f" style="width:300px"><span>Month of</span><span class="b">'+month+'</span></span></div>'+
+    '<div class="tool"><span class="f"><span class="tl">Learner Attendance Conversion Tool</span><span class="tb"></span></span></div>';
+
+  var page1='<section class="page">'+top+'<table class="reg">'+colgroup+'<thead>'+head+'</thead><tbody>'+body+'</tbody></table></section>';
+
+  /* summary */
+  var nM=MALES.length,nF=FEMALES.length,nT=ROSTER.length;
+  function ada(sum,n){return nDays?sum/nDays:null;}
+  var aM=ada(sumM),aF=ada(sumF),aT=nDays?(sumM+sumF)/nDays:null;
+  function fmtA(v){return v==null?'':sfTrim(v);}
+  function fmtP(v,n){return v==null?'':sfPct(v/n*100);}
+  var c5M=MALES.filter(function(s){return ms.per[s.id].maxRun>=5;}).length, c5F=FEMALES.filter(function(s){return ms.per[s.id].maxRun>=5;}).length;
+  function ed(v){return '<td class="big ed" contenteditable="true">'+v+'</td>';}
+  function vals(a,b,c){return '<td class="big">'+a+'</td><td class="big">'+b+'</td><td class="big">'+c+'</td>';}
+  function lab(t,sub){return '<td class="l'+(sub?' sub':'')+'" colspan="2">'+t+'</td>';}
+  var sm='<table class="sm"><colgroup><col class="c1"><col class="c2"><col class="cv"><col class="cv"><col class="cv"></colgroup>'+
+    '<tr><td class="l" style="font-size:8px">Month : '+month+'</td><td class="l" style="font-size:7.5px">No. of Days of Classes: &nbsp;<b>'+(nDays||'')+'</b></td><td class="hh" colspan="3">Summary</td></tr>'+
+    '<tr><td colspan="2"></td><td class="hh">M</td><td class="hh">F</td><td class="hh">TOTAL</td></tr>'+
+    '<tr>'+lab('* Enrolment as of (1st Friday of class started)')+vals(nM,nF,nT)+'</tr>'+
+    '<tr>'+lab('Late enrolment <b>during the month</b><br>(beyond cut-off)')+ed(0)+ed(0)+ed(0)+'</tr>'+
+    '<tr>'+lab('Registered Learners as of<br><b>end of month</b>')+vals(nM,nF,nT)+'</tr>'+
+    '<tr>'+lab('Percentage of Enrolment as of<br>end of month')+vals('100%','100%','100%')+'</tr>'+
+    '<tr>'+lab('Average Daily Attendance')+vals(fmtA(aM),fmtA(aF),fmtA(aT))+'</tr>'+
+    '<tr>'+lab('Percentage of Attendance for the month')+vals(fmtP(aM,nM),fmtP(aF,nF),fmtP(aT,nT))+'</tr>'+
+    '<tr>'+lab('Number of students absent for 5 consecutive days')+vals(c5M,c5F,c5M+c5F)+'</tr>'+
+    '<tr class="band"><td colspan="5"></td></tr>'+
+    '<tr>'+lab('NLPA',1)+ed(0)+ed(0)+ed(0)+'</tr>'+
+    '<tr>'+lab('Transferred Out',1)+ed(0)+ed(0)+ed(0)+'</tr>'+
+    '<tr>'+lab('Transferred In',1)+ed(0)+ed(0)+ed(0)+'</tr>'+
+    '<tr>'+lab('Shifted Out',1)+ed(0)+ed(0)+ed(0)+'</tr>'+
+    '<tr>'+lab('Shifted In',1)+ed(0)+ed(0)+ed(0)+'</tr></table>';
+
+  var cert='<div class="cert"><div class="ct">I certify that this is a true and correct report.</div>'+
+    '<div class="sig"><div class="nmn">'+SCHOOL.adviser+'</div><div class="cp">(Signature of Adviser over Printed Name)</div></div>'+
+    '<div class="sig" style="margin-top:22px"><div class="nmn">'+SCHOOL.head+'</div><div class="cp">(Signature of School Head over Printed Name)</div></div></div>';
+
+  var left='<div class="nt"><p>1. The attendance shall be accomplished daily. Refer to the codes for checking learners\' attendance.<br>2. Dates shall be written in the columns after Learner\'s Name.<br>3. To compute the following:</p>'+
+    '<div class="fm"><span class="fl">a. Percentage of Enrolment =</span><span class="fx"><span class="n">Registered Learners as of end of the month</span><span class="dn">Enrolment as of 1st Friday of the school year</span></span><span>x 100</span></div>'+
+    '<div class="fm"><span class="fl">b. Average Daily Attendance =</span><span class="fx"><span class="n">Total Daily Attendance</span><span class="dn">Number of School Days in reporting month</span></span><span></span></div>'+
+    '<div class="fm"><span class="fl">c. Percentage of Attendance for the month =</span><span class="fx"><span class="n">Average daily attendance</span><span class="dn">Registered Learners as of end of the month</span></span><span>x 100</span></div>'+
+    '<p>4. Every end of the month, the class adviser will submit this form to the office of the principal for recording of summary table into School Form 4. Once signed by the principal, this form should be returned to the adviser.<br>'+
+    '5. The adviser will provide necessary interventions including but not limited to home visitation to learner/s who were absent for 5 consecutive days and/or those at risk of dropping out.<br>'+
+    '6. Attendance performance of learners will be reflected in Form 137 and Form 138 every grading period.</p></div>';
+  var mid='<div><div class="cd"><h4>1. CODES FOR CHECKING ATTENDANCE</h4><p>(blank) - Present; (x)- Absent; Tardy (half shaded= Upper for Late Comer, Lower for Cutting Classes)</p>'+
+    '<h4>2. REASONS/CAUSES FOR NLPA</h4>'+
+    '<div class="gp">a. Domestic-Related Factors</div><div class="it">a.1. Had to take care of siblings<br>a.2. Early marriage/pregnancy<br>a.3. Parents\' attitude toward schooling<br>a.4. Family problems</div>'+
+    '<div class="gp">b. Individual-Related Factors</div><div class="it">b.1. Illness<br>b.2. Overage<br>b.3. Death<br>b.4. Drug Abuse<br>b.5. Poor academic performance<br>b.6. Lack of interest/Distractions<br>b.7. Hunger/Malnutrition</div>'+
+    '<div class="gp">c. School-Related Factors</div><div class="it">c.1. Teacher Factor<br>c.2. Physical condition of classroom<br>c.3. Peer influence</div>'+
+    '<div class="gp">d. Geographic/Environmental</div><div class="it">d.1. Distance between home and school<br>d.2. Armed conflict (incl. Tribal wars &amp; clanfeuds)<br>d.3. Calamities/Disasters</div>'+
+    '<div class="gp">e. Financial-Related</div><div class="it">e.1. Child labor, work</div>'+
+    '<div class="gp">f. Others (Specify)</div></div><div class="lis">Generated thru LIS</div></div>';
+  var page2='<section class="page"><div class="bt">'+left+mid+'<div>'+sm+cert+'</div></div></section>';
+
+  var tip='<div class="tip">SF2 for <b>'+MONTHS[m-1]+' '+y+'</b>, Grade 11 TULIP. To print: press <b>Ctrl+P</b> (Mac: <b>Cmd+P</b>), choose paper <b>A4</b>, <b>Landscape</b>, scale <b>100%</b>, then print or save as PDF. This bar and the yellow boxes do not print.</div>';
+  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SF2 '+MONTHS[m-1]+' '+y+' - Tulip</title><style>'+SF2_CSS+'</style></head><body>'+tip+page1+page2+'</body></html>';
+}
+
+/* preview + download */
+var $sf2=document.createElement('div'); $sf2.id='sf2Root'; $sf2.hidden=true; document.body.appendChild($sf2);
+var sf2State=null;
+function openSf2(){
+  var p=parse(S.date), html=sf2Doc(p.y,p.m);
+  sf2State={y:p.y,m:p.m,html:html};
+  $sf2.innerHTML='<div class="sf2bar"><button type="button" class="btn sec" data-act="sf2close">Back</button>'+
+    '<div class="sf2t"><strong>SF2 · '+MONTHS[p.m-1]+' '+p.y+'</strong><span>Yellow boxes can be typed in before you download.</span></div>'+
+    (dl?'<button type="button" class="btn" data-act="sf2dl">Download SF2</button>':'<span class="foot" style="margin:0">Downloads are not available in this view.</span>')+'</div>'+
+    '<iframe id="sf2Frame" title="SF2 preview"></iframe>';
+  $sf2.hidden=false; document.documentElement.style.overflow='hidden';
+  document.getElementById('sf2Frame').srcdoc=html;
+}
+function closeSf2(){sf2State=null;$sf2.hidden=true;$sf2.innerHTML='';document.documentElement.style.overflow='';}
+function sf2Download(){
+  if(!dl||!sf2State){toast('Download is not available here.');return;}
+  var html=sf2State.html;
+  try{var fr=document.getElementById('sf2Frame'); html='<!doctype html>\n'+fr.contentDocument.documentElement.outerHTML;}catch(e){}
+  html=html.replace(/ contenteditable="true"/g,'');
+  dl.save({filename:'SF2-Tulip-'+MONTHS[sf2State.m-1]+'-'+sf2State.y+'.html',data:html}).then(function(){toast('SF2 saved. Open it and press Ctrl+P to print.');}).catch(function(e){if(e&&e.code!=='declined')toast('Could not download the file.');});
+}
+
+
+/* ---------- boot ---------- */
+render();
+(function boot(){
+  S.days=loadStore(); S.loading=false;
+  try{if(navigator.storage&&navigator.storage.persist) navigator.storage.persist();}catch(e){}
+  render();
+  if(!(window.claude&&window.claude.use)) return;
+  claude.use('downloads').then(function(d){ if(d){dl=d;} else {dl=null;S.canDownload=false;} render(); }).catch(function(){});
+  Promise.all([claude.use('db'),claude.use('user')]).then(function(r){
+    var d=r[0],u=r[1]; if(!d) return;
+    db=d; S.loading=true; S.days={}; render();
+    return Promise.resolve(u&&u.can?u.can('data.write'):null).then(function(ok){
+      if(ok===false) S.canWrite=false;
+      db.collection('days').onSnapshot(function(snap){
+        var o={}; snap.docs.forEach(function(x){o[x.id]=x.data();});
+        S.days=o; S.loading=false; softRender();
+      },function(e){console.error(e); S.loading=false; toast('Lost the live connection. Reload the page.'); render();});
+    });
+  }).catch(function(e){console.error(e);});
+})();
+})();
+</script>
+
+
+</body></html>
